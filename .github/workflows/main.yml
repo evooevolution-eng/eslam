@@ -1,0 +1,33 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Unzip Project and Fix Dependencies
+        run: |
+          if [ -f mushaf-ali-apk-project-v3.zip ]; then
+            unzip -o mushaf-ali-apk-project-v3.zip -d proj
+          elif [ -f mushaf-ali-apk-ready-v3.zip ]; then
+            unzip -o mushaf-ali-apk-ready-v3.zip -d proj
+          else
+            unzip -o "$(ls -1t *.zip | head -n 1)" -d proj
+          fi
+          echo 'dependencies { implementation platform("org.jetbrains.kotlin:kotlin-bom:1.8.22") }' >> proj/app/build.gradle
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+      - name: Build Signed APK
+        working-directory: proj
+        run: gradle assembleRelease --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Mushaf-Ali-APK
+          path: proj/app/build/outputs/apk/release/app-release.apk
